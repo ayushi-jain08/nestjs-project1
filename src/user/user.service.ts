@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { User } from './user-schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
@@ -10,6 +10,10 @@ export class UserService {
     constructor(@InjectModel(User.name) private userModel: Model<User>) { }
 
     async createUser(CreateUserDto: CreateUserDto) {
+        const existingUser = await this.userModel.findOne({ email: CreateUserDto.email });
+        if (existingUser) {
+            throw new UnauthorizedException('User with this email already exists');
+        }
         const hashPassword = await bcrypt.hash(CreateUserDto.password, 10);
         const newUser = new this.userModel({ ...CreateUserDto, password: hashPassword });
         return await newUser.save();
